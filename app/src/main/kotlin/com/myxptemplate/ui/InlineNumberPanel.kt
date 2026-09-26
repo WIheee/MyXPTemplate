@@ -2,13 +2,11 @@ package com.myxptemplate.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -27,9 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.myxptemplate.data.Feature
@@ -38,95 +34,57 @@ import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
 /* ════════════════════════════════════════════════════════════════
- *  数值调节弹窗
+ *  内联数值面板 —— 展开在开关卡片正下方
  *
- *  触发：点击开关卡片的标题区（Multiplier / AutoTap）
- *  交互：滑块实时生效；− / + 按钮步进；点遮罩或"完成"关闭
+ *  布局（紧凑，与开关卡片同宽）：
+ *      ┌──────────────────────────────────────────┐
+ *      │  ×100           [−]  [  滑块  ]  [+]     │
+ *      └──────────────────────────────────────────┘
  * ════════════════════════════════════════════════════════════════ */
 
 @Composable
-fun NumberAdjustDialog() {
-    val target = FeatureStore.numberAdjustTarget ?: return
+fun InlineNumberPanel(f: Feature) {
+    val spec = remember(f) { specOf(f) }
+    var value by remember(f) { mutableFloatStateOf(spec.current().toFloat()) }
 
-    Box(
+    Row(
         Modifier
-            .fillMaxSize()
-            .background(Color(0xB3000000))
-            .pointerInput(Unit) {
-                detectTapGestures { FeatureStore.closeNumberAdjust() }
-            },
-        contentAlignment = Alignment.Center
+            .fillMaxWidth()
+            .padding(top = 2.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(UiColors.BgSidebarItem)   // 比卡片更深一档，形成层级
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            Modifier
-                .width(280.dp)
-                .pointerInput(Unit) {
-                    detectTapGestures { /* swallow */ }
-                }
-                .clip(RoundedCornerShape(16.dp))
-                .background(UiColors.BgRoot)
-                .padding(18.dp)
-        ) {
-            NumberAdjustCard(target)
-        }
-    }
-}
-
-@Composable
-private fun NumberAdjustCard(target: Feature) {
-    val chinese = FeatureStore.chinese
-    val spec = remember(target) { specOf(target) }
-    var value by remember(target) { mutableFloatStateOf(spec.current().toFloat()) }
-
-    Column(Modifier.fillMaxWidth()) {
-
-        // ── 标题行 ──
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier
-                    .size(width = 3.dp, height = 16.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(UiColors.Accent)
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                FeatureStore.label(target),
-                color = UiColors.TextPrimary,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                if (chinese) "数值调节" else "Adjust",
-                color = UiColors.TextSecondary,
-                fontSize = 11.sp
-            )
-        }
-
-        Spacer(Modifier.height(16.dp))
-
         // ── 当前值 ──
         Text(
             spec.format(value),
             color = UiColors.Accent,
-            fontSize = 30.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center
+            modifier = Modifier.width(56.dp)
         )
 
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.width(6.dp))
+
+        // ── − 步进 ──
+        PanelStepButton("−") {
+            val v = spec.snap((value - spec.stepBig).coerceAtLeast(spec.min))
+            value = v; spec.commit(v)
+        }
 
         // ── 滑块 ──
         Slider(
             value = value,
             onValueChange = { raw ->
                 val v = spec.snap(raw)
-                value = v
-                spec.commit(v)
+                value = v; spec.commit(v)
             },
             valueRange = spec.min..spec.max,
             steps = spec.steps,
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 6.dp),
             colors = SliderDefaults.colors(
                 thumbColor         = UiColors.Accent,
                 activeTrackColor   = UiColors.Accent,
@@ -136,57 +94,20 @@ private fun NumberAdjustCard(target: Feature) {
             )
         )
 
-        Spacer(Modifier.height(12.dp))
-
-        // ── 步进 ──
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            StepButton(if (chinese) "− 减" else "−", Modifier.weight(1f)) {
-                val v = spec.snap((value - spec.stepBig).coerceAtLeast(spec.min))
-                value = v
-                spec.commit(v)
-            }
-            StepButton(if (chinese) "+ 加" else "+", Modifier.weight(1f)) {
-                val v = spec.snap((value + spec.stepBig).coerceAtMost(spec.max))
-                value = v
-                spec.commit(v)
-            }
-        }
-
-        Spacer(Modifier.height(14.dp))
-
-        // ── 完成 ──
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(40.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(UiColors.Accent)
-                .clickable { FeatureStore.closeNumberAdjust() },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                if (chinese) "完成" else "Done",
-                color = UiColors.TextPrimary,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
-            )
+        // ── + 步进 ──
+        PanelStepButton("+") {
+            val v = spec.snap((value + spec.stepBig).coerceAtMost(spec.max))
+            value = v; spec.commit(v)
         }
     }
 }
 
 @Composable
-private fun StepButton(
-    text: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
+private fun PanelStepButton(text: String, onClick: () -> Unit) {
     Box(
-        modifier
-            .height(36.dp)
-            .clip(RoundedCornerShape(8.dp))
+        Modifier
+            .size(28.dp)
+            .clip(RoundedCornerShape(6.dp))
             .background(UiColors.BgItem)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
@@ -201,7 +122,7 @@ private fun StepButton(
 }
 
 /* ════════════════════════════════════════════════════════════════
- *  每个功能的数值规格
+ *  数值规格
  * ════════════════════════════════════════════════════════════════ */
 
 private class NumberSpec(
@@ -219,7 +140,6 @@ private class NumberSpec(
         return if (step <= 0f) clamped
         else (clamped / step).roundToInt() * step
     }
-
     fun commit(v: Float) { apply(v) }
 }
 
@@ -244,7 +164,7 @@ private fun specOf(f: Feature): NumberSpec = when (f) {
         steps    = 0,
         current  = { FeatureStore.autoTapInterval },
         apply    = { FeatureStore.updateAutoTapInterval(it.roundToLong()) },
-        format   = { "${it.roundToInt()} ms" }
+        format   = { "${it.roundToInt()}ms" }
     )
 
     else -> NumberSpec(

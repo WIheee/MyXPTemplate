@@ -35,15 +35,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/* ════════════════════════════════════════════════════════
- *  按钮 —— 两种形态，都跟 MenuSwitchItem 保持同一套
- *  高度 52dp / 圆角 8dp / 水平 14dp 内边距
- * ════════════════════════════════════════════════════════ */
-
-/**
- * @param primary true  = 强调色实心填充（主操作，如"一键通关"）
- *                false = 深色底 + 左侧强调色竖条（次操作，如"重置"）
- */
 @Composable
 fun MenuActionButton(
     title: String,
@@ -87,15 +78,10 @@ fun MenuActionButton(
             )
             Spacer(Modifier.width(10.dp))
         }
-
         Column(Modifier.weight(1f)) {
             Text(
-                title,
-                color = UiColors.TextPrimary,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                title, color = UiColors.TextPrimary, fontSize = 14.sp,
+                fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
             if (desc.isNotEmpty()) {
                 Spacer(Modifier.height(2.dp))
@@ -103,9 +89,7 @@ fun MenuActionButton(
                     desc,
                     color = if (primary) UiColors.TextPrimary.copy(alpha = 0.82f)
                             else UiColors.TextSecondary,
-                    fontSize = 11.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -115,9 +99,9 @@ fun MenuActionButton(
 /* ════════════════════════════════════════════════════════
  *  开关
  *
- *  · onTitleClick == null  → 整卡点击 = onToggle（旧行为）
- *  · onTitleClick != null  → 左侧标题区点击 = onTitleClick
- *                            右侧开关点击    = onToggle
+ *  onTitleClick == null  → 整卡点击 = onToggle
+ *  onTitleClick != null  → 标题区点击 = onTitleClick
+ *                          右侧开关点击 = onToggle
  * ════════════════════════════════════════════════════════ */
 
 @Composable
@@ -141,7 +125,6 @@ fun MenuSwitchItem(
             .background(UiColors.BgItem),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // ── 标题区（左）──
         Column(
             Modifier
                 .weight(1f)
@@ -155,24 +138,16 @@ fun MenuSwitchItem(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                title,
-                color = UiColors.TextPrimary,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                title, color = UiColors.TextPrimary, fontSize = 14.sp,
+                fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                desc,
-                color = UiColors.TextSecondary,
-                fontSize = 11.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                desc, color = UiColors.TextSecondary, fontSize = 11.sp,
+                maxLines = 1, overflow = TextOverflow.Ellipsis
             )
         }
 
-        // ── 开关（右）──
         Box(
             Modifier
                 .padding(end = 14.dp)
@@ -197,10 +172,6 @@ fun MenuSwitchItem(
     }
 }
 
-/* ════════════════════════════════════════════════════════
- *  分割线
- * ════════════════════════════════════════════════════════ */
-
 @Composable
 fun SectionDivider(label: String = "") {
     Row(
@@ -212,8 +183,7 @@ fun SectionDivider(label: String = "") {
             Text(
                 label,
                 color = UiColors.TextSecondary.copy(alpha = 0.6f),
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Medium,
+                fontSize = 10.sp, fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
             Box(Modifier.weight(1f).height(1.dp).background(UiColors.Divider))

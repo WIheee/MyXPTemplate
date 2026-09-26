@@ -34,8 +34,5 @@ fun FloatRoot(modifier: Modifier = Modifier) {
         }
 
         FloatToastHost()
-
-        // 数值调节弹窗（最上层，target 为 null 时不显示）
-        NumberAdjustDialog()
     }
 }
