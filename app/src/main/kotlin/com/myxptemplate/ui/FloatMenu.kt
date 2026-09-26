@@ -32,50 +32,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.myxptemplate.data.Feature
 import com.myxptemplate.data.FeatureStore
+import com.myxptemplate.data.Tabs
 
 /* ════════════════════════════════════════════════════════════════
- *  Tab 结构定义 —— 类型安全，无字符串
+ *  Tab 结构 —— 从 Tabs.LIST 读（由 features.txt 生成）
  * ════════════════════════════════════════════════════════════════ */
 
-private data class TabDef(
-    val feature: Feature,
-    val icon:    String,
-    val actions: List<Feature> = emptyList(),   // 上：一次性动作
-    val toggles: List<Feature> = emptyList()    // 下：开关
-)
-
-private val TABS: List<TabDef> = listOf(
-    TabDef(Feature.Home, "texture.png"),
-
-    TabDef(
-        Feature.Combat, "user.png",
-        actions = listOf(Feature.OneKeyClear, Feature.Reset),
-        toggles = listOf(Feature.Multiplier, Feature.AutoTap)
-    ),
-
-    TabDef(
-        Feature.Move, "modules.png",
-        toggles = listOf(
-            Feature.Fly, Feature.Speed, Feature.NoFall, Feature.Sprint,
-            Feature.AirJump, Feature.AntiVoid, Feature.AutoSprint,
-            Feature.Bhop, Feature.FastStop, Feature.Flying, Feature.HighJump
-        )
-    ),
-
-    TabDef(
-        Feature.Survival, "sky.png",
-        toggles = listOf(
-            Feature.CheatStealer, Feature.Scaffold, Feature.FastBuilder,
-            Feature.ClickTeleport, Feature.Teleport, Feature.Surround,
-            Feature.LockBack, Feature.Phantom
-        )
-    ),
-
-    TabDef(
-        Feature.Render, "fps.png",
-        toggles = listOf(Feature.ArrayList, Feature.Language, Feature.Toast)
-    )
-)
+private typealias TabDef = Tabs.TabDef
+private val TABS: List<TabDef> = Tabs.LIST
 
 /* ════════════════════════════════════════════════════════════════
  *  主菜单
@@ -109,7 +73,7 @@ fun FloatMenu() {
 }
 
 /* ════════════════════════════════════════════════════════════════
- *  左侧栏 —— RowScope 扩展，内部可用 weight()
+ *  左侧栏
  * ════════════════════════════════════════════════════════════════ */
 
 @Composable
@@ -131,12 +95,8 @@ private fun RowScope.Sidebar(currentTab: Int) {
                 .clickable { FeatureStore.menuVisible = false },
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                "LinYun",
-                color = UiColors.TextPrimary,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text("LinYun", color = UiColors.TextPrimary,
+                 fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
 
         Spacer(Modifier.height(4.dp))
@@ -155,8 +115,6 @@ private fun RowScope.Sidebar(currentTab: Int) {
         }
     }
 }
-
-/* ─── TabRow 需要在内层 Column 里均分高度 → ColumnScope 扩展 ─── */
 
 @Composable
 private fun ColumnScope.TabRow(tab: TabDef, selected: Boolean, onClick: () -> Unit) {
@@ -191,7 +149,7 @@ private fun ColumnScope.TabRow(tab: TabDef, selected: Boolean, onClick: () -> Un
 }
 
 /* ════════════════════════════════════════════════════════════════
- *  右侧内容区 —— RowScope 扩展
+ *  右侧内容区
  * ════════════════════════════════════════════════════════════════ */
 
 @Composable
@@ -220,13 +178,11 @@ private fun HomePanel() {
 }
 
 /* ════════════════════════════════════════════════════════════════
- *  功能面板：按钮在上，分割线居中，开关在下
+ *  功能面板 —— 每个功能一行
  * ════════════════════════════════════════════════════════════════ */
 
 @Composable
 private fun FeaturePanel(tab: TabDef) {
-    val chinese = FeatureStore.chinese
-
     Column(
         Modifier
             .fillMaxSize()
@@ -234,53 +190,16 @@ private fun FeaturePanel(tab: TabDef) {
             .padding(6.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
-        /* ① 动作按钮区 */
         tab.actions.forEachIndexed { i, f ->
-            MenuActionButton(
-                title = FeatureStore.label(f),
-                desc  = FeatureStore.desc(f),
-                primary = i == 0,
-                onClick = {
-                    if (FeatureStore.run(f) && FeatureStore.toastEnabled) {
-                        ToastBus.push(
-                            FeatureStore.label(f),
-                            if (chinese) "已完成" else "Done",
-                            true
-                        )
-                    }
-                }
-            )
+            ActionRow(f, primary = i == 0)
         }
 
-        /* ② 分隔线 */
         if (tab.actions.isNotEmpty() && tab.toggles.isNotEmpty()) {
-            SectionDivider(if (chinese) "开关" else "TOGGLES")
+            SectionDivider(if (FeatureStore.chinese) "开关" else "TOGGLES")
         }
 
-        /* ③ 开关区 */
         tab.toggles.forEach { f ->
-            val on = FeatureStore.isOn(f)
-            MenuSwitchItem(
-                title   = FeatureStore.label(f),
-                desc    = FeatureStore.desc(f),
-                enabled = on,
-                onToggle = {
-                    FeatureStore.toggle(f)
-                    if (FeatureStore.toastEnabled) {
-                        val now = FeatureStore.isOn(f)
-                        ToastBus.push(
-                            FeatureStore.label(f),
-                            when {
-                                chinese && now  -> "已开启"
-                                chinese && !now -> "已关闭"
-                                now             -> "Enabled"
-                                else            -> "Disabled"
-                            },
-                            now
-                        )
-                    }
-                }
-            )
+            ToggleRow(f)
         }
     }
 }

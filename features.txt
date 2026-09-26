@@ -1,0 +1,61 @@
+# ══════════════════════════════════════════════════════════════════
+#  features.txt —— 功能清单（唯一数据源）
+# ══════════════════════════════════════════════════════════════════
+#
+#  加功能 = 加一行 → 跑 python feature_tool.py gen
+#  或者   = python feature_tool.py add   （交互式，不用记格式）
+#
+#  格式（用 | 分隔，两边空格可选）：
+#
+#    @tab  <枚举名> | <中文> | <英文> | <图标文件名>
+#
+#    <枚举名> | <中文> | <英文> | <中文描述> | <英文描述> | <toggle|action> | <tab枚举名小写>
+#
+#  规则：
+#    · 以 # 开头的行是注释
+#    · @tab 定义 Tab 页，图标文件放在 assets/ 下
+#    · 其余行定义一个功能，最后一列指明属于哪个 tab
+#    · action 只出现在 actions 区；toggle 只出现在 toggles 区
+#    · 同一 tab 下多行按书写顺序排列
+# ══════════════════════════════════════════════════════════════════
+
+# ── Tab 页 ────────────────────────────────────────────────────────
+@tab | Home     | 主页 | Home     | texture.png
+@tab | Combat   | 战斗 | Combat   | user.png
+@tab | Move     | 移动 | Move     | modules.png
+@tab | Survival | 世界 | Survival | sky.png
+@tab | Render   | 视觉 | Render   | fps.png
+
+# ── Combat ────────────────────────────────────────────────────────
+OneKeyClear | 一键通关 | One-Key Clear   | 立即将计数置满 114514 | Instantly fill counter to 114514 | action | combat
+Reset       | 重置进度 | Reset Progress  | 将计数重置回 0        | Reset counter back to 0        | action | combat
+Multiplier  | 百倍加速 | Multiplier      | 每次点击 +100         | Each tap adds 100              | toggle | combat
+AutoTap     | 自动连点 | Auto Tap        | 每秒自动点击 5 次     | Auto tap 5 times per second    | toggle | combat
+
+# ── Move ──────────────────────────────────────────────────────────
+Fly        | 飞行       | Fly        | 允许玩家在空中自由飞行     | Free fly mode                     | toggle | move
+Speed      | 加速       | Speed      | 大幅度提升移动速度         | Increase movement speed           | toggle | move
+NoFall     | 无摔落伤害 | NoFall     | 取消高空坠落受到的伤害     | Cancel fall damage                | toggle | move
+Sprint     | 强制疾跑   | Sprint     | 始终保持疾跑状态           | Always sprint                     | toggle | move
+AirJump    | 空中跳跃   | AirJump    | 允许在半空中进行无限次跳跃 | Jump multiple times in air        | toggle | move
+AntiVoid   | 虚空回弹   | AntiVoid   | 掉入虚空时自动弹回安全区域 | Bounce back when falling into void| toggle | move
+AutoSprint | 自动疾跑   | AutoSprint | 无需双击前进自动保持疾跑   | Automatically hold sprint         | toggle | move
+Bhop       | 兔子跳     | Bhop       | 连续跳跃来获取极快移速     | Bunny hop to increase speed       | toggle | move
+FastStop   | 快速停止   | FastStop   | 松开按键瞬间停止消除惯性   | Stop instantly when no keys       | toggle | move
+Flying     | 飞行权限   | Flying     | 赋予类似创造模式的飞行权限 | Enable creative flight ability    | toggle | move
+HighJump   | 高跳       | HighJump   | 大幅度增加跳跃高度         | Jump higher than normal           | toggle | move
+
+# ── Survival ──────────────────────────────────────────────────────
+CheatStealer  | 自动取物 | CheatStealer  | 打开箱子瞬间拿走所有物品     | Instantly steal all items         | toggle | survival
+Scaffold      | 自动搭路 | Scaffold      | 在脚下自动放置方块搭桥       | Automatically place blocks        | toggle | survival
+FastBuilder   | 快速搭建 | FastBuilder   | 以极快的速度连续放置方块     | Build structures at extreme speed | toggle | survival
+ClickTeleport | 点击传送 | ClickTeleport | 瞬间传送到你点击的方块位置   | Teleport to the block you click   | toggle | survival
+Teleport      | 目标传送 | Teleport      | 瞬间传送到锁定的目标实体身边 | Teleport to targeted entity       | toggle | survival
+Surround      | 环绕目标 | Surround      | 自动在目标周围放置方块困住   | Surround target with blocks       | toggle | survival
+LockBack      | 锁背     | LockBack      | 视角强制锁定在目标的背后     | Lock rotation to back of target   | toggle | survival
+Phantom       | 虚影跟随 | Phantom       | 生成一个虚影跟随模式         | Phantom entity follow mode        | toggle | survival
+
+# ── Render ────────────────────────────────────────────────────────
+ArrayList | 功能列表    | ArrayList        | 右上角显示已启用功能 | Show enabled features list | toggle | render
+Language  | 语言 / Lang | Language / Lang  | 切换界面为中文       | Switch interface to Chinese| toggle | render
+Toast     | 消息提示    | Toast Notify     | 显示消息弹窗通知     | Show popup notifications   | toggle | render

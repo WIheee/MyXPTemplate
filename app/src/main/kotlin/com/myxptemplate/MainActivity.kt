@@ -70,7 +70,7 @@ private fun InfoScreen(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "Xposed Module · v1.0",
+            "Xposed Module · v1.1",
             color = Color(0xFF9C5F54),
             fontSize = 13.sp
         )
