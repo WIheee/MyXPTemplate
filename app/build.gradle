@@ -8,9 +8,6 @@ android {
     namespace 'com.myxptemplate'
     compileSdk 36
 
-    // ── Native 工具链版本（与 SDK 管理器里装的保持一致）────────
-    ndkVersion '30.0.15729638'
-
     defaultConfig {
         applicationId 'com.myxptemplate'
         minSdk 29
@@ -19,31 +16,6 @@ android {
         versionName '1.0.1'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
-
-        // ── Native 构建 ─────────────────────────────────────
-        externalNativeBuild {
-            cmake {
-                cppFlags '-std=c++17'
-                arguments '-DANDROID_STL=c++_static'
-            }
-        }
-        ndk {
-            abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
-        }
-    }
-
-    // ── 指向 CMakeLists，指定 CMake 版本 ─────────────────────
-    externalNativeBuild {
-        cmake {
-            path 'src/main/cpp/CMakeLists.txt'
-            version '4.1.2'
-        }
-    }
-
-    packaging {
-        jniLibs {
-            useLegacyPackaging = false
-        }
     }
 
     buildFeatures {
@@ -75,5 +47,6 @@ dependencies {
     debugImplementation libs.androidx.ui.tooling
     debugImplementation libs.androidx.ui.test.manifest
 
-    compileOnly libs.libxposed.api
+    // Stellar 特权 API
+    implementation libs.stellar.api
 }

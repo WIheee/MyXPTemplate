@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
@@ -30,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,8 +45,13 @@ object ToastBus {
     val items = mutableStateListOf<ToastItem>()
     private var nextId = 0L
 
+    /**
+     * 无条件入队 —— 「消息提示」开关的判断交给调用方。
+     *
+     * 这样当用户切换「消息提示」本身时，即使开关关闭也能得到
+     * 「已关闭」的反馈；其他功能仍然由调用方按开关过滤。
+     */
     fun push(title: String, desc: String, on: Boolean) {
-        if (!FeatureStore.toastEnabled) return
         val id = nextId++
         items.add(ToastItem(id, title, desc, on))
         if (items.size > 3) items.removeAt(0)
@@ -54,6 +62,10 @@ object ToastBus {
     }
 }
 
+/**
+ * 便捷入口 —— 会按 [FeatureStore.toastEnabled] 过滤。
+ * 需要无条件显示时请直接调 [ToastBus.push]。
+ */
 fun FeatureStore.pushToast(key: String, on: Boolean, isAction: Boolean = false) {
     if (!toastEnabled) return
     val desc = if (isAction) {
@@ -91,10 +103,23 @@ private fun ToastCardHost(item: ToastItem) {
         delay(260)
         ToastBus.remove(item.id)
     }
+
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(tween(260)) + slideInHorizontally(tween(260)) { it },
-        exit = fadeOut(tween(220)) + slideOutHorizontally(tween(220)) { it }
+        enter = fadeIn(tween(240)) +
+                slideInHorizontally(tween(320)) { it } +
+                scaleIn(
+                    animationSpec = tween(300),
+                    initialScale = 0.88f,
+                    transformOrigin = TransformOrigin(1f, 0.5f)
+                ),
+        exit = fadeOut(tween(180)) +
+                slideOutHorizontally(tween(220)) { it } +
+                scaleOut(
+                    animationSpec = tween(220),
+                    targetScale = 0.88f,
+                    transformOrigin = TransformOrigin(1f, 0.5f)
+                )
     ) {
         ToastCard(item)
     }

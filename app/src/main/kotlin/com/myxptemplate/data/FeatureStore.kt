@@ -6,7 +6,6 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.myxptemplate.util.ModuleAssets
-import com.myxptemplate.xposed.HookBridge
 
 object FeatureStore {
 
@@ -17,8 +16,6 @@ object FeatureStore {
 
     var multiplierValue  by mutableStateOf(100)
     var autoTapInterval  by mutableStateOf(200L)
-
-    var menuVisible by mutableStateOf(false)
 
     /** 当前展开内联数值面板的功能（null = 无）。同一时间只展开一个。 */
     var expandedNumberFeature by mutableStateOf<Feature?>(null)
@@ -50,19 +47,13 @@ object FeatureStore {
     fun set(f: Feature, on: Boolean) {
         if (f.kind != Feature.Kind.Toggle) return
         _toggles[f] = on
-        when (f) {
-            Feature.Multiplier -> HookBridge.multiplier = if (on) multiplierValue else 1
-            Feature.AutoTap    -> if (on) HookBridge.startAutoTap(autoTapInterval)
-                                   else    HookBridge.stopAutoTap()
-            else               -> Unit
-        }
         if (on) { if (f !in activeFeatures) activeFeatures.add(f) }
         else    { activeFeatures.remove(f) }
     }
 
     fun run(f: Feature): Boolean = when (f) {
-        Feature.OneKeyClear -> HookBridge.oneKeyClear()
-        Feature.Reset       -> HookBridge.resetCount()
+        Feature.OneKeyClear -> true
+        Feature.Reset       -> true
         else                -> false
     }
 
@@ -82,15 +73,10 @@ object FeatureStore {
 
     fun updateMultiplier(v: Int) {
         multiplierValue = v.coerceIn(1, 10000)
-        if (isOn(Feature.Multiplier)) HookBridge.multiplier = multiplierValue
     }
 
     fun updateAutoTapInterval(ms: Long) {
         autoTapInterval = ms.coerceIn(20L, 2000L)
-        if (isOn(Feature.AutoTap)) {
-            HookBridge.stopAutoTap()
-            HookBridge.startAutoTap(autoTapInterval)
-        }
     }
 
     fun selectTab(i: Int) {

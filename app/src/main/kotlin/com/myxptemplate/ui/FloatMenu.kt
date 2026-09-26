@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import com.myxptemplate.data.Feature
 import com.myxptemplate.data.FeatureStore
 import com.myxptemplate.data.Tabs
+import com.myxptemplate.overlay.OverlayState
 
 /* ════════════════════════════════════════════════════════════════
  *  Tab 结构 —— 从 Tabs.LIST 读（由 features.txt 生成）
@@ -92,7 +93,7 @@ private fun RowScope.Sidebar(currentTab: Int) {
                 .height(44.dp)
                 .clip(RoundedCornerShape(9.dp))
                 .background(UiColors.BgSidebarItem)
-                .clickable { FeatureStore.menuVisible = false },
+                .clickable { OverlayState.expanded = false },
             contentAlignment = Alignment.Center
         ) {
             Text("LinYun", color = UiColors.TextPrimary,

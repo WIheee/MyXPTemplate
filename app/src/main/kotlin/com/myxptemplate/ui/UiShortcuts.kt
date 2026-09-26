@@ -44,8 +44,12 @@ fun ToggleRow(f: Feature) {
             enabled = on,
             onToggle = {
                 FeatureStore.toggle(f)
-                if (FeatureStore.toastEnabled) {
-                    val now = FeatureStore.isOn(f)
+                val now = FeatureStore.isOn(f)
+
+                // 「消息提示」开关本身：无论开/关都弹
+                // 其他功能：仅在消息提示开启时弹
+                val shouldToast = f == Feature.Toast || FeatureStore.toastEnabled
+                if (shouldToast) {
                     ToastBus.push(
                         FeatureStore.label(f),
                         when {
