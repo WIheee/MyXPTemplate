@@ -9,17 +9,6 @@ import com.myxptemplate.data.FeatureStore
  *   一行式功能行 —— 面板里每个功能只写一次调用
  * ════════════════════════════════════════════════════════════════
  *
- *  以前（20 行）：
- *      MenuActionButton(
- *          title = FeatureStore.label(f),
- *          desc  = FeatureStore.desc(f),
- *          primary = i == 0,
- *          onClick = { if (FeatureStore.run(f) && FeatureStore.toastEnabled) { ... } }
- *      )
- *
- *  现在（1 行）：
- *      ActionRow(f, primary = i == 0)
- *
  *  Toast 反馈、翻译、状态读写全部封装在这两个函数里。
  */
 
@@ -46,6 +35,8 @@ fun ActionRow(f: Feature, primary: Boolean = false) {
 fun ToggleRow(f: Feature) {
     val chinese = FeatureStore.chinese
     val on = FeatureStore.isOn(f)
+    val adjustable = FeatureStore.hasNumberAdjust(f)
+
     MenuSwitchItem(
         title   = FeatureStore.label(f),
         desc    = FeatureStore.desc(f),
@@ -65,6 +56,9 @@ fun ToggleRow(f: Feature) {
                     now
                 )
             }
-        }
+        },
+        onTitleClick = if (adjustable) {
+            { FeatureStore.openNumberAdjust(f) }
+        } else null
     )
 }

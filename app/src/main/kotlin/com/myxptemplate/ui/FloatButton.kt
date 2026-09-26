@@ -8,10 +8,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -111,7 +113,11 @@ fun MenuActionButton(
 }
 
 /* ════════════════════════════════════════════════════════
- *  开关 —— 从 FloatMenu 里挪出来，供所有面板复用
+ *  开关
+ *
+ *  · onTitleClick == null  → 整卡点击 = onToggle（旧行为）
+ *  · onTitleClick != null  → 左侧标题区点击 = onTitleClick
+ *                            右侧开关点击    = onToggle
  * ════════════════════════════════════════════════════════ */
 
 @Composable
@@ -119,7 +125,8 @@ fun MenuSwitchItem(
     title: String,
     desc: String,
     enabled: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    onTitleClick: (() -> Unit)? = null
 ) {
     val trackColor by animateColorAsState(
         if (enabled) UiColors.Accent else UiColors.TrackOff, tween(250)
@@ -131,12 +138,22 @@ fun MenuSwitchItem(
             .fillMaxWidth()
             .height(52.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(UiColors.BgItem)
-            .clickable(onClick = onToggle)
-            .padding(horizontal = 14.dp),
+            .background(UiColors.BgItem),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(Modifier.weight(1f)) {
+        // ── 标题区（左）──
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onTitleClick ?: onToggle
+                )
+                .padding(start = 14.dp, end = 6.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
             Text(
                 title,
                 color = UiColors.TextPrimary,
@@ -154,11 +171,19 @@ fun MenuSwitchItem(
                 overflow = TextOverflow.Ellipsis
             )
         }
+
+        // ── 开关（右）──
         Box(
             Modifier
+                .padding(end = 14.dp)
                 .size(width = 48.dp, height = 26.dp)
                 .clip(CircleShape)
                 .background(trackColor)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onToggle
+                )
                 .padding(2.dp)
         ) {
             Box(
@@ -173,7 +198,7 @@ fun MenuSwitchItem(
 }
 
 /* ════════════════════════════════════════════════════════
- *  分割线 —— 按钮区与开关区之间的呼吸
+ *  分割线
  * ════════════════════════════════════════════════════════ */
 
 @Composable

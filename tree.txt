@@ -15,7 +15,8 @@ MyXPTemplate
 │   │       │       └── myxptemplate
 │   │       │           ├── data
 │   │       │           │   ├── Feature.kt
-│   │       │           │   └── FeatureStore.kt
+│   │       │           │   ├── FeatureStore.kt
+│   │       │           │   └── Tabs.kt
 │   │       │           ├── ui
 │   │       │           │   ├── theme
 │   │       │           │   │   ├── Color.kt
@@ -28,7 +29,8 @@ MyXPTemplate
 │   │       │           │   ├── FloatMenu.kt
 │   │       │           │   ├── FloatRoot.kt
 │   │       │           │   ├── FloatToast.kt
-│   │       │           │   └── UiColors.kt
+│   │       │           │   ├── UiColors.kt
+│   │       │           │   └── UiShortcuts.kt
 │   │       │           ├── util
 │   │       │           │   ├── Assets.kt
 │   │       │           │   ├── Logger.kt
@@ -83,6 +85,8 @@ MyXPTemplate
 │   │   └── gradle-wrapper.properties
 │   └── libs.versions.toml
 ├── build.gradle
+├── feature_tool.py
+├── features.txt
 ├── gradle.properties
 ├── gradlew
 ├── gradlew.bat
@@ -496,6 +500,294 @@ kotlin.code.style=official
 # resources declared in the library itself and none from the library's dependencies,
 # thereby reducing the size of the R class for that library
 android.nonTransitiveRClass=true
+}features.txt{
+# ══════════════════════════════════════════════════════════════════
+#  features.txt —— 功能清单（唯一数据源）
+# ══════════════════════════════════════════════════════════════════
+#
+#  加功能 = 加一行 → 跑 python feature_tool.py gen
+#  或者   = python feature_tool.py add   （交互式，不用记格式）
+#
+#  格式（用 | 分隔，两边空格可选）：
+#
+#    @tab  <枚举名> | <中文> | <英文> | <图标文件名>
+#
+#    <枚举名> | <中文> | <英文> | <中文描述> | <英文描述> | <toggle|action> | <tab枚举名小写>
+#
+#  规则：
+#    · 以 # 开头的行是注释
+#    · @tab 定义 Tab 页，图标文件放在 assets/ 下
+#    · 其余行定义一个功能，最后一列指明属于哪个 tab
+#    · action 只出现在 actions 区；toggle 只出现在 toggles 区
+#    · 同一 tab 下多行按书写顺序排列
+# ══════════════════════════════════════════════════════════════════
+
+# ── Tab 页 ────────────────────────────────────────────────────────
+@tab | Home     | 主页 | Home     | texture.png
+@tab | Combat   | 战斗 | Combat   | user.png
+@tab | Move     | 移动 | Move     | modules.png
+@tab | Survival | 世界 | Survival | sky.png
+@tab | Render   | 视觉 | Render   | fps.png
+
+# ── Combat ────────────────────────────────────────────────────────
+OneKeyClear | 一键通关 | One-Key Clear   | 立即将计数置满 114514 | Instantly fill counter to 114514 | action | combat
+Reset       | 重置进度 | Reset Progress  | 将计数重置回 0        | Reset counter back to 0        | action | combat
+Multiplier  | 百倍加速 | Multiplier      | 每次点击 +100         | Each tap adds 100              | toggle | combat
+AutoTap     | 自动连点 | Auto Tap        | 每秒自动点击 5 次     | Auto tap 5 times per second    | toggle | combat
+
+# ── Move ──────────────────────────────────────────────────────────
+Fly        | 飞行       | Fly        | 允许玩家在空中自由飞行     | Free fly mode                     | toggle | move
+Speed      | 加速       | Speed      | 大幅度提升移动速度         | Increase movement speed           | toggle | move
+NoFall     | 无摔落伤害 | NoFall     | 取消高空坠落受到的伤害     | Cancel fall damage                | toggle | move
+Sprint     | 强制疾跑   | Sprint     | 始终保持疾跑状态           | Always sprint                     | toggle | move
+AirJump    | 空中跳跃   | AirJump    | 允许在半空中进行无限次跳跃 | Jump multiple times in air        | toggle | move
+AntiVoid   | 虚空回弹   | AntiVoid   | 掉入虚空时自动弹回安全区域 | Bounce back when falling into void| toggle | move
+AutoSprint | 自动疾跑   | AutoSprint | 无需双击前进自动保持疾跑   | Automatically hold sprint         | toggle | move
+Bhop       | 兔子跳     | Bhop       | 连续跳跃来获取极快移速     | Bunny hop to increase speed       | toggle | move
+FastStop   | 快速停止   | FastStop   | 松开按键瞬间停止消除惯性   | Stop instantly when no keys       | toggle | move
+Flying     | 飞行权限   | Flying     | 赋予类似创造模式的飞行权限 | Enable creative flight ability    | toggle | move
+HighJump   | 高跳       | HighJump   | 大幅度增加跳跃高度         | Jump higher than normal           | toggle | move
+
+# ── Survival ──────────────────────────────────────────────────────
+CheatStealer  | 自动取物 | CheatStealer  | 打开箱子瞬间拿走所有物品     | Instantly steal all items         | toggle | survival
+Scaffold      | 自动搭路 | Scaffold      | 在脚下自动放置方块搭桥       | Automatically place blocks        | toggle | survival
+FastBuilder   | 快速搭建 | FastBuilder   | 以极快的速度连续放置方块     | Build structures at extreme speed | toggle | survival
+ClickTeleport | 点击传送 | ClickTeleport | 瞬间传送到你点击的方块位置   | Teleport to the block you click   | toggle | survival
+Teleport      | 目标传送 | Teleport      | 瞬间传送到锁定的目标实体身边 | Teleport to targeted entity       | toggle | survival
+Surround      | 环绕目标 | Surround      | 自动在目标周围放置方块困住   | Surround target with blocks       | toggle | survival
+LockBack      | 锁背     | LockBack      | 视角强制锁定在目标的背后     | Lock rotation to back of target   | toggle | survival
+Phantom       | 虚影跟随 | Phantom       | 生成一个虚影跟随模式         | Phantom entity follow mode        | toggle | survival
+
+# ── Render ────────────────────────────────────────────────────────
+ArrayList | 功能列表    | ArrayList        | 右上角显示已启用功能 | Show enabled features list | toggle | render
+Language  | 语言 / Lang | Language / Lang  | 切换界面为中文       | Switch interface to Chinese| toggle | render
+Toast     | 消息提示    | Toast Notify     | 显示消息弹窗通知     | Show popup notifications   | toggle | render
+}feature_tool.py{
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+feature_tool.py —— 功能清单驱动的代码生成器
+================================================================
+命令：
+  python feature_tool.py           显示帮助
+  python feature_tool.py list      列出所有功能
+  python feature_tool.py add       交互式添加一个功能
+  python feature_tool.py gen       从 features.txt 生成 Kotlin
+
+数据源：features.txt
+生成物：
+  app/src/main/kotlin/com/myxptemplate/data/Feature.kt
+  app/src/main/kotlin/com/myxptemplate/data/Tabs.kt
+"""
+
+import os
+import sys
+
+ROOT          = os.path.dirname(os.path.abspath(__file__))
+FEATURES_FILE = os.path.join(ROOT, "features.txt")
+FEATURE_KT    = os.path.join(ROOT, "app/src/main/kotlin/com/myxptemplate/data/Feature.kt")
+TABS_KT       = os.path.join(ROOT, "app/src/main/kotlin/com/myxptemplate/data/Tabs.kt")
+
+HEADER = "// ⚠️ 本文件由 feature_tool.py 从 features.txt 生成，不要手改。\n" \
+         "//    修改功能 → 改 features.txt → 跑 python feature_tool.py gen\n\n"
+
+
+# ════════════════════════════════════════════════════════════════
+#  解析
+# ════════════════════════════════════════════════════════════════
+
+def parse():
+    """返回 (tabs, funcs)。tabs: [(name,zh,en,icon)]，funcs: [(...)]"""
+    if not os.path.exists(FEATURES_FILE):
+        print("找不到 features.txt，请先跑 patch_typing_boost.py")
+        sys.exit(1)
+
+    tabs, funcs = [], []
+    with open(FEATURES_FILE, "r", encoding="utf-8") as f:
+        for raw in f:
+            line = raw.split("#", 1)[0].strip()
+            if not line:
+                continue
+            parts = [p.strip() for p in line.split("|")]
+            if parts[0] == "@tab":
+                # @tab | Home | 主页 | Home | texture.png
+                if len(parts) < 5:
+                    print("坏行（@tab 需要 5 段）:", line); sys.exit(1)
+                _, name, zh, en, icon = parts[:5]
+                tabs.append((name, zh, en, icon))
+            else:
+                # Name | zh | en | zhDesc | enDesc | kind | tab
+                if len(parts) < 7:
+                    print("坏行（func 需要 7 段）:", line); sys.exit(1)
+                name, zh, en, dzh, den, kind, tab = parts[:7]
+                kind = kind.lower()
+                if kind not in ("toggle", "action"):
+                    print("kind 必须是 toggle / action:", line); sys.exit(1)
+                funcs.append((name, zh, en, dzh, den, kind, tab.lower()))
+    return tabs, funcs
+
+
+def esc(s: str) -> str:
+    return s.replace("\\", "\\\\").replace('"', '\\"')
+
+
+# ════════════════════════════════════════════════════════════════
+#  生成 Feature.kt
+# ════════════════════════════════════════════════════════════════
+
+def gen_feature_kt(tabs, funcs):
+    lines = []
+    lines.append(HEADER)
+    lines.append("package com.myxptemplate.data\n\n")
+    lines.append("/** 所有功能的单一定义源；由 features.txt 生成。 */\n")
+    lines.append("enum class Feature(\n")
+    lines.append("    val labelEn: String,\n")
+    lines.append("    val labelZh: String,\n")
+    lines.append("    val descEn:  String = \"\",\n")
+    lines.append("    val descZh:  String = \"\",\n")
+    lines.append("    val kind:    Kind   = Kind.Toggle\n")
+    lines.append(") {\n")
+
+    # Tab 枚举项
+    lines.append("    // ── Tab 页 ──\n")
+    for name, zh, en, _ in tabs:
+        lines.append(f'    {name}("{esc(en)}", "{esc(zh)}"),\n')
+    lines.append("\n")
+
+    # 每个 tab 下的功能
+    for tab_name, _, _, _ in tabs:
+        key = tab_name.lower()
+        rows = [f for f in funcs if f[6] == key]
+        if not rows:
+            continue
+        lines.append(f"    // ── {tab_name} ──\n")
+        for i, (name, zh, en, dzh, den, kind, _t) in enumerate(rows):
+            last = (i == len(rows) - 1) and (tab_name == tabs[-1][0])
+            sep = "" if last else ","
+            kind_kotlin = "Kind.Action" if kind == "action" else "Kind.Toggle"
+            lines.append(
+                f'    {name}("{esc(en)}", "{esc(zh)}", '
+                f'"{esc(den)}", "{esc(dzh)}", {kind_kotlin}){sep}\n'
+            )
+        lines.append("\n")
+
+    lines.append("    ;\n\n")
+    lines.append("    enum class Kind { Toggle, Action }\n\n")
+    lines.append("    companion object {\n")
+    lines.append("        fun of(name: String): Feature? = entries.firstOrNull { it.name == name }\n")
+    lines.append("    }\n")
+    lines.append("}\n")
+
+    with open(FEATURE_KT, "w", encoding="utf-8", newline="\n") as f:
+        f.write("".join(lines))
+    print("[GEN] " + os.path.relpath(FEATURE_KT, ROOT))
+
+
+# ════════════════════════════════════════════════════════════════
+#  生成 Tabs.kt
+# ════════════════════════════════════════════════════════════════
+
+def gen_tabs_kt(tabs, funcs):
+    lines = []
+    lines.append(HEADER)
+    lines.append("package com.myxptemplate.data\n\n")
+    lines.append("/** Tab 结构与成员归属；由 features.txt 生成。 */\n")
+    lines.append("object Tabs {\n\n")
+    lines.append("    data class TabDef(\n")
+    lines.append("        val feature: Feature,\n")
+    lines.append("        val icon:    String,\n")
+    lines.append("        val actions: List<Feature> = emptyList(),\n")
+    lines.append("        val toggles: List<Feature> = emptyList()\n")
+    lines.append("    )\n\n")
+    lines.append("    val LIST: List<TabDef> = listOf(\n")
+
+    for name, _zh, _en, icon in tabs:
+        key = name.lower()
+        acts = [f[0] for f in funcs if f[6] == key and f[5] == "action"]
+        tgs  = [f[0] for f in funcs if f[6] == key and f[5] == "toggle"]
+        if not acts and not tgs:
+            lines.append(f'        TabDef(Feature.{name}, "{icon}"),\n')
+        else:
+            lines.append(f'        TabDef(\n')
+            lines.append(f'            Feature.{name}, "{icon}",\n')
+            if acts:
+                lines.append(f'            actions = listOf({", ".join("Feature." + a for a in acts)}),\n')
+            if tgs:
+                lines.append(f'            toggles = listOf({", ".join("Feature." + t for t in tgs)})\n')
+            lines.append(f'        ),\n')
+    lines.append("    )\n")
+    lines.append("}\n")
+
+    with open(TABS_KT, "w", encoding="utf-8", newline="\n") as f:
+        f.write("".join(lines))
+    print("[GEN] " + os.path.relpath(TABS_KT, ROOT))
+
+
+# ════════════════════════════════════════════════════════════════
+#  命令
+# ════════════════════════════════════════════════════════════════
+
+def cmd_list():
+    tabs, funcs = parse()
+    cur = None
+    for name, zh, en, _dzh, _den, kind, tab in funcs:
+        if tab != cur:
+            print(f"\n[{tab}]")
+            cur = tab
+        print(f"  {name:14s}  {kind:6s}  {zh} / {en}")
+
+
+def cmd_gen():
+    tabs, funcs = parse()
+    gen_feature_kt(tabs, funcs)
+    gen_tabs_kt(tabs, funcs)
+
+
+def cmd_add():
+    tabs, _ = parse()
+    tab_keys = [t[0].lower() for t in tabs]
+    print("可用 Tab: " + ", ".join(tab_keys))
+    name = input("枚举名（如 AutoJump）: ").strip()
+    if not name or not name[0].isupper():
+        print("枚举名必须大写开头"); return
+    zh   = input("中文标签: ").strip()
+    en   = input("英文标签: ").strip() or name
+    dzh  = input("中文描述: ").strip()
+    den  = input("英文描述: ").strip() or dzh
+    kind = (input("类型 [toggle/action]（默认 toggle）: ").strip() or "toggle").lower()
+    if kind not in ("toggle", "action"):
+        print("kind 必须是 toggle / action"); return
+    tab  = (input(f"属于哪个 tab（默认 {tab_keys[0]}）: ").strip() or tab_keys[0]).lower()
+    if tab not in tab_keys:
+        print("未知 tab"); return
+
+    # append 到 features.txt 末尾
+    line = f"{name} | {zh} | {en} | {dzh} | {den} | {kind} | {tab}\n"
+    with open(FEATURES_FILE, "a", encoding="utf-8", newline="\n") as f:
+        f.write(line)
+    print("[ADD]  " + line.strip())
+    cmd_gen()
+
+
+def cmd_help():
+    print(__doc__)
+    print("文件位置：")
+    print("  数据源: " + os.path.relpath(FEATURES_FILE, ROOT))
+    print("  生成物: " + os.path.relpath(FEATURE_KT, ROOT))
+    print("          " + os.path.relpath(TABS_KT, ROOT))
+
+
+def main():
+    args = sys.argv[1:]
+    cmd  = args[0] if args else "help"
+    if   cmd == "list": cmd_list()
+    elif cmd == "gen":  cmd_gen()
+    elif cmd == "add":  cmd_add()
+    else:               cmd_help()
+
+
+if __name__ == "__main__":
+    main()
 }app/build.gradle{
 plugins {
     alias(libs.plugins.android.application)
@@ -514,8 +806,8 @@ android {
         applicationId 'com.myxptemplate'
         minSdk 29
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        versionCode 2
+        versionName '1.0.1'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
 
@@ -698,7 +990,7 @@ private fun InfoScreen(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "Xposed Module · v1.0",
+            "Xposed Module · v1.1",
             color = Color(0xFF9C5F54),
             fontSize = 13.sp
         )
@@ -931,7 +1223,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -956,50 +1250,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.myxptemplate.data.Feature
 import com.myxptemplate.data.FeatureStore
+import com.myxptemplate.data.Tabs
 
 /* ════════════════════════════════════════════════════════════════
- *  Tab 结构定义 —— 类型安全，无字符串
+ *  Tab 结构 —— 从 Tabs.LIST 读（由 features.txt 生成）
  * ════════════════════════════════════════════════════════════════ */
 
-private data class TabDef(
-    val feature: Feature,
-    val icon:    String,
-    val actions: List<Feature> = emptyList(),   // 上：一次性动作
-    val toggles: List<Feature> = emptyList()    // 下：开关
-)
-
-private val TABS: List<TabDef> = listOf(
-    TabDef(Feature.Home, "texture.png"),
-
-    TabDef(
-        Feature.Combat, "user.png",
-        actions = listOf(Feature.OneKeyClear, Feature.Reset),
-        toggles = listOf(Feature.Multiplier, Feature.AutoTap)
-    ),
-
-    TabDef(
-        Feature.Move, "modules.png",
-        toggles = listOf(
-            Feature.Fly, Feature.Speed, Feature.NoFall, Feature.Sprint,
-            Feature.AirJump, Feature.AntiVoid, Feature.AutoSprint,
-            Feature.Bhop, Feature.FastStop, Feature.Flying, Feature.HighJump
-        )
-    ),
-
-    TabDef(
-        Feature.Survival, "sky.png",
-        toggles = listOf(
-            Feature.CheatStealer, Feature.Scaffold, Feature.FastBuilder,
-            Feature.ClickTeleport, Feature.Teleport, Feature.Surround,
-            Feature.LockBack, Feature.Phantom
-        )
-    ),
-
-    TabDef(
-        Feature.Render, "fps.png",
-        toggles = listOf(Feature.ArrayList, Feature.Language, Feature.Toast)
-    )
-)
+private typealias TabDef = Tabs.TabDef
+private val TABS: List<TabDef> = Tabs.LIST
 
 /* ════════════════════════════════════════════════════════════════
  *  主菜单
@@ -1037,7 +1295,7 @@ fun FloatMenu() {
  * ════════════════════════════════════════════════════════════════ */
 
 @Composable
-private fun Sidebar(currentTab: Int) {
+private fun RowScope.Sidebar(currentTab: Int) {
     Column(
         Modifier
             .weight(2f)
@@ -1055,12 +1313,8 @@ private fun Sidebar(currentTab: Int) {
                 .clickable { FeatureStore.menuVisible = false },
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                "LinYun",
-                color = UiColors.TextPrimary,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text("LinYun", color = UiColors.TextPrimary,
+                 fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
 
         Spacer(Modifier.height(4.dp))
@@ -1081,7 +1335,7 @@ private fun Sidebar(currentTab: Int) {
 }
 
 @Composable
-private fun TabRow(tab: TabDef, selected: Boolean, onClick: () -> Unit) {
+private fun ColumnScope.TabRow(tab: TabDef, selected: Boolean, onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -1117,7 +1371,7 @@ private fun TabRow(tab: TabDef, selected: Boolean, onClick: () -> Unit) {
  * ════════════════════════════════════════════════════════════════ */
 
 @Composable
-private fun ContentPane(tab: TabDef) {
+private fun RowScope.ContentPane(tab: TabDef) {
     Box(
         Modifier
             .weight(8f)
@@ -1142,13 +1396,11 @@ private fun HomePanel() {
 }
 
 /* ════════════════════════════════════════════════════════════════
- *  功能面板：按钮在上，分割线居中，开关在下
+ *  功能面板 —— 每个功能一行
  * ════════════════════════════════════════════════════════════════ */
 
 @Composable
 private fun FeaturePanel(tab: TabDef) {
-    val chinese = FeatureStore.chinese
-
     Column(
         Modifier
             .fillMaxSize()
@@ -1156,55 +1408,89 @@ private fun FeaturePanel(tab: TabDef) {
             .padding(6.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
-        /* ① 动作按钮区 */
         tab.actions.forEachIndexed { i, f ->
-            MenuActionButton(
-                title = FeatureStore.label(f),
-                desc  = FeatureStore.desc(f),
-                primary = i == 0,
-                onClick = {
-                    if (FeatureStore.run(f) && FeatureStore.toastEnabled) {
-                        ToastBus.push(
-                            FeatureStore.label(f),
-                            if (chinese) "已完成" else "Done",
-                            true
-                        )
-                    }
-                }
-            )
+            ActionRow(f, primary = i == 0)
         }
 
-        /* ② 分隔线 */
         if (tab.actions.isNotEmpty() && tab.toggles.isNotEmpty()) {
-            SectionDivider(if (chinese) "开关" else "TOGGLES")
+            SectionDivider(if (FeatureStore.chinese) "开关" else "TOGGLES")
         }
 
-        /* ③ 开关区 */
         tab.toggles.forEach { f ->
-            val on = FeatureStore.isOn(f)
-            MenuSwitchItem(
-                title   = FeatureStore.label(f),
-                desc    = FeatureStore.desc(f),
-                enabled = on,
-                onToggle = {
-                    FeatureStore.toggle(f)
-                    if (FeatureStore.toastEnabled) {
-                        val now = FeatureStore.isOn(f)
-                        ToastBus.push(
-                            FeatureStore.label(f),
-                            when {
-                                chinese && now  -> "已开启"
-                                chinese && !now -> "已关闭"
-                                now             -> "Enabled"
-                                else            -> "Disabled"
-                            },
-                            now
-                        )
-                    }
-                }
-            )
+            ToggleRow(f)
         }
     }
+}
+}app/src/main/kotlin/com/myxptemplate/ui/UiShortcuts.kt{
+package com.myxptemplate.ui
+
+import androidx.compose.runtime.Composable
+import com.myxptemplate.data.Feature
+import com.myxptemplate.data.FeatureStore
+
+/**
+ * ════════════════════════════════════════════════════════════════
+ *   一行式功能行 —— 面板里每个功能只写一次调用
+ * ════════════════════════════════════════════════════════════════
+ *
+ *  以前（20 行）：
+ *      MenuActionButton(
+ *          title = FeatureStore.label(f),
+ *          desc  = FeatureStore.desc(f),
+ *          primary = i == 0,
+ *          onClick = { if (FeatureStore.run(f) && FeatureStore.toastEnabled) { ... } }
+ *      )
+ *
+ *  现在（1 行）：
+ *      ActionRow(f, primary = i == 0)
+ *
+ *  Toast 反馈、翻译、状态读写全部封装在这两个函数里。
+ */
+
+@Composable
+fun ActionRow(f: Feature, primary: Boolean = false) {
+    val chinese = FeatureStore.chinese
+    MenuActionButton(
+        title = FeatureStore.label(f),
+        desc  = FeatureStore.desc(f),
+        primary = primary,
+        onClick = {
+            if (FeatureStore.run(f) && FeatureStore.toastEnabled) {
+                ToastBus.push(
+                    FeatureStore.label(f),
+                    if (chinese) "已完成" else "Done",
+                    true
+                )
+            }
+        }
+    )
+}
+
+@Composable
+fun ToggleRow(f: Feature) {
+    val chinese = FeatureStore.chinese
+    val on = FeatureStore.isOn(f)
+    MenuSwitchItem(
+        title   = FeatureStore.label(f),
+        desc    = FeatureStore.desc(f),
+        enabled = on,
+        onToggle = {
+            FeatureStore.toggle(f)
+            if (FeatureStore.toastEnabled) {
+                val now = FeatureStore.isOn(f)
+                ToastBus.push(
+                    FeatureStore.label(f),
+                    when {
+                        chinese && now  -> "已开启"
+                        chinese && !now -> "已关闭"
+                        now             -> "Enabled"
+                        else            -> "Disabled"
+                    },
+                    now
+                )
+            }
+        }
+    )
 }
 }app/src/main/kotlin/com/myxptemplate/ui/FloatHud.kt{
 package com.myxptemplate.ui
@@ -2289,18 +2575,12 @@ object FeatureStore {
     fun trans(name: String): String = label(name)
 }
 }app/src/main/kotlin/com/myxptemplate/data/Feature.kt{
+// ⚠️ 本文件由 feature_tool.py 从 features.txt 生成，不要手改。
+//    修改功能 → 改 features.txt → 跑 python feature_tool.py gen
+
 package com.myxptemplate.data
 
-/**
- * ════════════════════════════════════════════════════════════════
- *   所有功能的「单一定义源」
- * ════════════════════════════════════════════════════════════════
- *
- *  以前：字符串散落各处，翻译表三份，加个功能要改 5 个地方。
- *  现在：加一个功能 = 加一个枚举项，翻译 / 类型 / 描述全自动。
- *
- *  枚举名 (name) 就是运行时 key，UI 层用类型，存储层用 name。
- */
+/** 所有功能的单一定义源；由 features.txt 生成。 */
 enum class Feature(
     val labelEn: String,
     val labelZh: String,
@@ -2308,91 +2588,98 @@ enum class Feature(
     val descZh:  String = "",
     val kind:    Kind   = Kind.Toggle
 ) {
-    // ── Tab ──────────────────────────────────────────────────
-    Home     ("Home",     "主页"),
-    Combat   ("Combat",   "战斗"),
-    Move     ("Move",     "移动"),
-    Survival ("Survival", "世界"),
-    Render   ("Render",   "视觉"),
+    // ── Tab 页 ──
+    Home("Home", "主页"),
+    Combat("Combat", "战斗"),
+    Move("Move", "移动"),
+    Survival("Survival", "世界"),
+    Render("Render", "视觉"),
 
-    // ── Combat：动作（点一下执行，不保持状态）────────────────
-    OneKeyClear("One-Key Clear", "一键通关",
-        "Instantly fill counter to 114514", "立即将计数置满 114514",
-        Kind.Action),
+    // ── Combat ──
+    OneKeyClear("One-Key Clear", "一键通关", "Instantly fill counter to 114514", "立即将计数置满 114514", Kind.Action),
+    Reset("Reset Progress", "重置进度", "Reset counter back to 0", "将计数重置回 0", Kind.Action),
+    Multiplier("Multiplier", "百倍加速", "Each tap adds 100", "每次点击 +100", Kind.Toggle),
+    AutoTap("Auto Tap", "自动连点", "Auto tap 5 times per second", "每秒自动点击 5 次", Kind.Toggle),
 
-    Reset      ("Reset Progress", "重置进度",
-        "Reset counter back to 0", "将计数重置回 0",
-        Kind.Action),
+    // ── Move ──
+    Fly("Fly", "飞行", "Free fly mode", "允许玩家在空中自由飞行", Kind.Toggle),
+    Speed("Speed", "加速", "Increase movement speed", "大幅度提升移动速度", Kind.Toggle),
+    NoFall("NoFall", "无摔落伤害", "Cancel fall damage", "取消高空坠落受到的伤害", Kind.Toggle),
+    Sprint("Sprint", "强制疾跑", "Always sprint", "始终保持疾跑状态", Kind.Toggle),
+    AirJump("AirJump", "空中跳跃", "Jump multiple times in air", "允许在半空中进行无限次跳跃", Kind.Toggle),
+    AntiVoid("AntiVoid", "虚空回弹", "Bounce back when falling into void", "掉入虚空时自动弹回安全区域", Kind.Toggle),
+    AutoSprint("AutoSprint", "自动疾跑", "Automatically hold sprint", "无需双击前进自动保持疾跑", Kind.Toggle),
+    Bhop("Bhop", "兔子跳", "Bunny hop to increase speed", "连续跳跃来获取极快移速", Kind.Toggle),
+    FastStop("FastStop", "快速停止", "Stop instantly when no keys", "松开按键瞬间停止消除惯性", Kind.Toggle),
+    Flying("Flying", "飞行权限", "Enable creative flight ability", "赋予类似创造模式的飞行权限", Kind.Toggle),
+    HighJump("HighJump", "高跳", "Jump higher than normal", "大幅度增加跳跃高度", Kind.Toggle),
 
-    // ── Combat：开关（会真 Hook 目标）────────────────────────
-    Multiplier ("Multiplier", "百倍加速",
-        "Each tap adds 100", "每次点击 +100"),
+    // ── Survival ──
+    CheatStealer("CheatStealer", "自动取物", "Instantly steal all items", "打开箱子瞬间拿走所有物品", Kind.Toggle),
+    Scaffold("Scaffold", "自动搭路", "Automatically place blocks", "在脚下自动放置方块搭桥", Kind.Toggle),
+    FastBuilder("FastBuilder", "快速搭建", "Build structures at extreme speed", "以极快的速度连续放置方块", Kind.Toggle),
+    ClickTeleport("ClickTeleport", "点击传送", "Teleport to the block you click", "瞬间传送到你点击的方块位置", Kind.Toggle),
+    Teleport("Teleport", "目标传送", "Teleport to targeted entity", "瞬间传送到锁定的目标实体身边", Kind.Toggle),
+    Surround("Surround", "环绕目标", "Surround target with blocks", "自动在目标周围放置方块困住", Kind.Toggle),
+    LockBack("LockBack", "锁背", "Lock rotation to back of target", "视角强制锁定在目标的背后", Kind.Toggle),
+    Phantom("Phantom", "虚影跟随", "Phantom entity follow mode", "生成一个虚影跟随模式", Kind.Toggle),
 
-    AutoTap    ("Auto Tap", "自动连点",
-        "Auto tap 5 times per second", "每秒自动点击 5 次"),
-
-    // ── Move：视觉占位 ────────────────────────────────────────
-    Fly        ("Fly", "飞行",
-        "Free fly mode", "允许玩家在空中自由飞行"),
-    Speed      ("Speed", "加速",
-        "Increase movement speed", "大幅度提升移动速度"),
-    NoFall     ("NoFall", "无摔落伤害",
-        "Cancel fall damage", "取消高空坠落受到的伤害"),
-    Sprint     ("Sprint", "强制疾跑",
-        "Always sprint", "始终保持疾跑状态"),
-    AirJump    ("AirJump", "空中跳跃",
-        "Jump multiple times in air", "允许在半空中进行无限次跳跃"),
-    AntiVoid   ("AntiVoid", "虚空回弹",
-        "Bounce back when falling into void", "掉入虚空时自动将玩家弹回安全区域"),
-    AutoSprint ("AutoSprint", "自动疾跑",
-        "Automatically hold sprint", "无需双击前进即可自动保持疾跑"),
-    Bhop       ("Bhop", "兔子跳",
-        "Bunny hop to increase speed", "通过连续跳跃来获取极快的移动速度"),
-    FastStop   ("FastStop", "快速停止",
-        "Stop instantly when no keys pressed", "松开按键时瞬间停止移动消除惯性"),
-    Flying     ("Flying", "飞行权限",
-        "Enable creative flight ability", "赋予玩家类似创造模式的飞行权限"),
-    HighJump   ("HighJump", "高跳",
-        "Jump higher than normal", "大幅度增加玩家的跳跃高度"),
-
-    // ── Survival：视觉占位 ────────────────────────────────────
-    CheatStealer  ("CheatStealer", "自动取物",
-        "Instantly steal all items from chests", "打开箱子瞬间拿走所有物品"),
-    Scaffold      ("Scaffold", "自动搭路",
-        "Automatically place blocks under you", "在脚下自动放置方块搭桥"),
-    FastBuilder   ("FastBuilder", "快速搭建",
-        "Build structures at extreme speed", "以极快的速度连续放置方块搭建"),
-    ClickTeleport ("ClickTeleport", "点击传送",
-        "Teleport to the block you click", "瞬间传送到你点击的方块位置"),
-    Teleport      ("Teleport", "目标传送",
-        "Teleport to targeted entity", "瞬间传送到锁定的目标实体身边"),
-    Surround      ("Surround", "环绕目标",
-        "Surround target with blocks", "自动在目标周围放置方块将其困住"),
-    LockBack      ("LockBack", "锁背",
-        "Lock rotation to back of target", "视角强制锁定在目标的背后"),
-    Phantom       ("Phantom", "虚影跟随",
-        "Phantom entity follow mode", "生成一个虚影跟随模式"),
-
-    // ── Render：本模块 UI ─────────────────────────────────────
-    ArrayList ("ArrayList", "功能列表",
-        "Show enabled features list", "右上角显示已启用功能"),
-    Language  ("Language / Lang", "语言 / Lang",
-        "Switch interface to Chinese", "切换界面为中文"),
-    Toast     ("Toast Notify", "消息提示",
-        "Show popup notifications", "显示消息弹窗通知"),
+    // ── Render ──
+    ArrayList("ArrayList", "功能列表", "Show enabled features list", "右上角显示已启用功能", Kind.Toggle),
+    Language("Language / Lang", "语言 / Lang", "Switch interface to Chinese", "切换界面为中文", Kind.Toggle),
+    Toast("Toast Notify", "消息提示", "Show popup notifications", "显示消息弹窗通知", Kind.Toggle)
     ;
 
-    enum class Kind {
-        /** 有开 / 关两种状态，会占用 HUD 一行。 */
-        Toggle,
-        /** 一次性动作，点一下就执行，不保持状态。 */
-        Action
-    }
+    enum class Kind { Toggle, Action }
 
     companion object {
-        /** 按枚举名反查（用于旧字符串接口兼容）。 */
         fun of(name: String): Feature? = entries.firstOrNull { it.name == name }
     }
+}
+}app/src/main/kotlin/com/myxptemplate/data/Tabs.kt{
+// ⚠️ 本文件由 feature_tool.py 从 features.txt 生成，不要手改。
+//    修改功能 → 改 features.txt → 跑 python feature_tool.py gen
+
+package com.myxptemplate.data
+
+/** Tab 结构与成员归属；由 features.txt 生成。 */
+object Tabs {
+
+    data class TabDef(
+        val feature: Feature,
+        val icon:    String,
+        val actions: List<Feature> = emptyList(),
+        val toggles: List<Feature> = emptyList()
+    )
+
+    val LIST: List<TabDef> = listOf(
+        TabDef(Feature.Home, "texture.png"),
+        TabDef(
+            Feature.Combat, "user.png",
+            actions = listOf(Feature.OneKeyClear, Feature.Reset),
+            toggles = listOf(Feature.Multiplier, Feature.AutoTap)
+        ),
+        TabDef(
+            Feature.Move, "modules.png",
+            toggles = listOf(
+                Feature.Fly, Feature.Speed, Feature.NoFall, Feature.Sprint,
+                Feature.AirJump, Feature.AntiVoid, Feature.AutoSprint,
+                Feature.Bhop, Feature.FastStop, Feature.Flying, Feature.HighJump
+            )
+        ),
+        TabDef(
+            Feature.Survival, "sky.png",
+            toggles = listOf(
+                Feature.CheatStealer, Feature.Scaffold, Feature.FastBuilder,
+                Feature.ClickTeleport, Feature.Teleport, Feature.Surround,
+                Feature.LockBack, Feature.Phantom
+            )
+        ),
+        TabDef(
+            Feature.Render, "fps.png",
+            toggles = listOf(Feature.ArrayList, Feature.Language, Feature.Toast)
+        ),
+    )
 }
 }app/src/main/kotlin/com/myxptemplate/util/Assets.kt{
 package com.myxptemplate.util
@@ -2477,27 +2764,39 @@ import com.myxptemplate.ModuleConfig
  *
  *  ▸ 计时打点：
  *      L.timed("inject overlay") { injectOverlay(activity) }
+ *
+ *  实现细节（两条都是 Kotlin 编译器对 inline 的硬性约束）：
+ *
+ *  1) inline 函数会展开到调用处，所以它引用的任何符号都必须在调用处
+ *     可达。TAG 这种 private 字段会直接编译失败，所以直接用
+ *     [ModuleConfig.LOG_TAG] —— 它是 public const val，编译期替换为
+ *     字符串字面量，不存在符号访问问题。
+ *
+ *  2) inline 函数直接读 backing field（省一次 getter 调用），所以
+ *     `enabled` 必须把 backing field 暴露为 public JVM 字段。
+ *     加 @JvmField 就达到这个效果。
  */
 object L {
 
-    private const val TAG = ModuleConfig.LOG_TAG
-
-    @Volatile var enabled: Boolean = true
+    /** 关闭时所有日志调用退化为一次字段读 + 分支跳转。 */
+    @JvmField
+    @Volatile
+    var enabled: Boolean = true
 
     inline fun d(msg: () -> String) {
-        if (enabled) Log.d(TAG, msg())
+        if (enabled) Log.d(ModuleConfig.LOG_TAG, msg())
     }
 
     inline fun i(msg: () -> String) {
-        if (enabled) Log.i(TAG, msg())
+        if (enabled) Log.i(ModuleConfig.LOG_TAG, msg())
     }
 
     inline fun w(msg: () -> String, t: Throwable? = null) {
-        if (enabled) Log.w(TAG, msg(), t)
+        if (enabled) Log.w(ModuleConfig.LOG_TAG, msg(), t)
     }
 
     inline fun e(msg: () -> String, t: Throwable? = null) {
-        if (enabled) Log.e(TAG, msg(), t)
+        if (enabled) Log.e(ModuleConfig.LOG_TAG, msg(), t)
     }
 
     /** try/catch + 打日志 + 返回 null。 */

@@ -26,12 +26,16 @@ object FeatureStore {
     /** HUD 显示用；顺序即显示顺序。 */
     val activeFeatures = mutableStateListOf<Feature>()
 
-    // ── 数值可调（供以后接 UI 用）────────────────────────────
+    // ── 数值可调 ────────────────────────────────────────────
     var multiplierValue  by mutableStateOf(100)
     var autoTapInterval  by mutableStateOf(200L)
 
     // ── 菜单可见性 ──────────────────────────────────────────
     var menuVisible by mutableStateOf(false)
+
+    // ── 数值调节弹窗目标（null = 未打开）───────────────────
+    var numberAdjustTarget by mutableStateOf<Feature?>(null)
+        private set
 
     // ── 当前 Tab（持久化）───────────────────────────────────
     var currentTab by mutableStateOf(0)
@@ -43,12 +47,10 @@ object FeatureStore {
     val arrayListEnabled: Boolean get() = isOn(Feature.ArrayList)
 
     init {
-        // 默认开启的两个
         _toggles[Feature.ArrayList] = true
         _toggles[Feature.Toast]     = true
         activeFeatures.add(Feature.ArrayList)
 
-        // 恢复上次的 Tab
         runCatching {
             currentTab = ModuleAssets.prefs()?.getInt(KEY_TAB, 0) ?: 0
         }
@@ -73,7 +75,6 @@ object FeatureStore {
         if (f.kind != Feature.Kind.Toggle) return
         _toggles[f] = on
 
-        // 真 Hook 的功能
         when (f) {
             Feature.Multiplier -> HookBridge.multiplier = if (on) multiplierValue else 1
             Feature.AutoTap    -> if (on) HookBridge.startAutoTap(autoTapInterval)
@@ -90,6 +91,37 @@ object FeatureStore {
         Feature.OneKeyClear -> HookBridge.oneKeyClear()
         Feature.Reset       -> HookBridge.resetCount()
         else                -> false
+    }
+
+    // ═════════════════════════════════════════════════════════
+    //  数值调节
+    // ═════════════════════════════════════════════════════════
+
+    /** 该功能是否支持数值调节（点击标题区弹窗）。 */
+    fun hasNumberAdjust(f: Feature): Boolean = when (f) {
+        Feature.Multiplier, Feature.AutoTap -> true
+        else -> false
+    }
+
+    fun openNumberAdjust(f: Feature) {
+        if (hasNumberAdjust(f)) numberAdjustTarget = f
+    }
+
+    fun closeNumberAdjust() {
+        numberAdjustTarget = null
+    }
+
+    fun updateMultiplier(v: Int) {
+        multiplierValue = v.coerceIn(1, 10000)
+        if (isOn(Feature.Multiplier)) HookBridge.multiplier = multiplierValue
+    }
+
+    fun updateAutoTapInterval(ms: Long) {
+        autoTapInterval = ms.coerceIn(20L, 2000L)
+        if (isOn(Feature.AutoTap)) {
+            HookBridge.stopAutoTap()
+            HookBridge.startAutoTap(autoTapInterval)
+        }
     }
 
     // ═════════════════════════════════════════════════════════
@@ -111,11 +143,9 @@ object FeatureStore {
     fun label(f: Feature): String = if (chinese) f.labelZh else f.labelEn
     fun desc(f: Feature):  String = if (chinese) f.descZh  else f.descEn
 
-    // 兼容旧字符串调用（FloatToast 还在用）
     fun label(name: String): String = Feature.of(name)?.let { label(it) } ?: name
     fun desc(name: String):  String = Feature.of(name)?.let { desc(it) }  ?: ""
 
-    /** @deprecated 用 [label] 代替。 */
     @Deprecated("Use label()", ReplaceWith("label(name)"))
     fun trans(name: String): String = label(name)
 }
