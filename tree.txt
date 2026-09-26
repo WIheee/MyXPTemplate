@@ -1835,24 +1835,19 @@ import android.graphics.drawable.AnimatedImageDrawable
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -1863,36 +1858,24 @@ import com.myxptemplate.util.ModuleAssets
 /**
  * 悬浮球。
  *
- * 窗口是全屏的，所以位置用 Modifier.offset 表达，
- * 不再依赖窗口的 x/y。
+ * 渲染窗口是全屏的，所以位置用 Modifier.offset 以屏幕绝对坐标表达，
+ * 不依赖窗口的 x/y。
+ *
+ * 拖拽 / 点击由 OverlayService 的触摸代理窗口接管（渲染窗口在球模式下
+ * 是 FLAG_NOT_TOUCHABLE 的），这里只读 [OverlayState.dragging] 决定
+ * 显示哪张动画。
  */
 @Composable
 fun FloatIcon() {
     val density = LocalDensity.current
     val ballSizeDp = with(density) { OverlayState.ballSize.toDp() }
 
-    var dragging by remember { mutableStateOf(false) }
     val idle = remember { ModuleAssets.loadDrawable("pig.gif") }
     val running = remember { ModuleAssets.loadDrawable("run_pig.gif") }
 
     val ballModifier = Modifier
         .offset { IntOffset(OverlayState.ballX, OverlayState.ballY) }
         .size(ballSizeDp)
-        .pointerInput(Unit) {
-            detectDragGestures(
-                onDragStart = { dragging = true },
-                onDragEnd = { dragging = false },
-                onDragCancel = { dragging = false }
-            ) { change, drag ->
-                change.consume()
-                OverlayState.moveBallBy(drag.x, drag.y)
-            }
-        }
-        .pointerInput(Unit) {
-            detectTapGestures {
-                OverlayState.expanded = true
-            }
-        }
 
     if (idle == null) {
         Box(ballModifier, contentAlignment = Alignment.Center) {
@@ -1925,7 +1908,7 @@ fun FloatIcon() {
                 }
             },
             update = { iv ->
-                val target = if (dragging) (running ?: idle) else idle
+                val target = if (OverlayState.dragging) (running ?: idle) else idle
                 if (iv.drawable !== target) {
                     iv.setImageDrawable(target)
                     (target as? AnimatedImageDrawable)?.start()
@@ -2151,13 +2134,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import com.myxptemplate.overlay.OverlayState
 
@@ -2168,7 +2149,7 @@ import com.myxptemplate.overlay.OverlayState
  * ────
  *   · HUD 和 Toast 在最外层 —— 无论球模式还是菜单模式都渲染
  *   · 球和菜单用 AnimatedVisibility 切换，有过渡动画
- *   · 窗口始终全屏，触摸穿透由 OverlayService 的 insets 控制
+ *   · 渲染窗口始终全屏，触摸穿透由 OverlayService 的触摸代理窗口控制
  *
  * 动画
  * ────
@@ -2199,11 +2180,10 @@ fun FloatRoot(modifier: Modifier = Modifier) {
             exit  = fadeOut(tween(180)) + scaleOut(tween(180), targetScale = 0.92f)
         ) {
             Box(Modifier.fillMaxSize()) {
-                // 半透明背景：点击关闭菜单
+                // 透明遮罩：仅用于点击菜单外部关闭菜单
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Color(0x66000000))
                         .pointerInput(Unit) {
                             detectTapGestures {
                                 OverlayState.expanded = false
@@ -3079,9 +3059,10 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
-import android.view.ViewTreeObserver
 import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.compose.runtime.getValue
@@ -3102,24 +3083,30 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.myxptemplate.ui.FloatRoot
 import com.myxptemplate.ui.theme.ComposeEmptyActivityTheme
 import com.myxptemplate.util.ModuleAssets
+import kotlin.math.abs
 
 /**
  * ════════════════════════════════════════════════════════════════
- *   悬浮窗前台服务（v2）
+ *   悬浮窗前台服务
  * ════════════════════════════════════════════════════════════════
  *
- *   窗口始终全屏 —— 尺寸和位置不再变化，视觉上球不会「飞」。
+ *   双窗口方案 —— 用公开 API 实现「球外触摸穿透」。
  *
- *   触摸穿透靠 ViewTreeObserver.OnComputeInternalInsets：
+ *     ① 渲染窗口（[rootView]）：始终全屏，负责画球 / 菜单 / HUD / Toast，
+ *        坐标一律是屏幕绝对坐标。
  *
- *     球模式：touchableRegion = 球矩形（+少量 padding）
- *              → 球外的触摸落在 region 外，系统直接派发给下层 App
+ *          球模式 → 加 FLAG_NOT_TOUCHABLE，它不参与任何触摸；
+ *          菜单模式 → 去掉该 flag，全屏拦截触摸（点外部关菜单）。
  *
- *     菜单模式：TOUCHABLE_INSETS_FRAME（全屏）
- *              → 拦所有触摸，点击外部关闭菜单
+ *     ② 触摸代理窗口（[touchView]）：一个透明的空 View，覆盖在球
+ *        （外加 padPx 容差）上，独占球的拖拽 / 点击。
  *
- *   触摸分配规则：ACTION_DOWN 落在窗口的 region 内 → 整个手势
- *   都发给窗口（包括拖出去）。所以拖动球时手指滑出球外也不断。
+ *          球模式 → 可触摸，且带 FLAG_NOT_TOUCH_MODAL，
+ *                   所以球以外的触摸穿透到下层 App；
+ *          菜单模式 → 加 FLAG_NOT_TOUCHABLE 退回全穿透。
+ *
+ *   两个窗口的 flags / 位置都由 [applyLayout] 依据
+ *   [OverlayState.expanded] 与球的位置统一重算。
  */
 class OverlayService : Service() {
 
@@ -3130,6 +3117,14 @@ class OverlayService : Service() {
 
         const val ACTION_STOP = "com.myxptemplate.overlay.STOP"
 
+        /** 渲染窗口与触摸代理窗口共用的基础 flags。 */
+        private const val BASE_FLAGS =
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+            WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
+
         /** 供 UI 读取的运行状态。 */
         var isRunning: Boolean by mutableStateOf(false)
             private set
@@ -3137,7 +3132,21 @@ class OverlayService : Service() {
 
     private lateinit var windowManager: WindowManager
     private var rootView: FrameLayout? = null
+    private var rootParams: WindowManager.LayoutParams? = null
+    private var touchView: View? = null
+    private var touchParams: WindowManager.LayoutParams? = null
     private val host = OverlayHost()
+
+    /** 球周围额外的可触摸容差。 */
+    private var padPx = 0
+
+    /** 判定「点击」还是「拖拽」的位移阈值。 */
+    private var touchSlop = 0
+
+    private var downRawX = 0f
+    private var downRawY = 0f
+    private var lastRawX = 0f
+    private var lastRawY = 0f
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -3145,6 +3154,7 @@ class OverlayService : Service() {
         super.onCreate()
         Log.i(TAG, "OverlayService onCreate")
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        touchSlop = ViewConfiguration.get(this).scaledTouchSlop
         ModuleAssets.init(applicationContext, packageName)
         startForegroundCompat()
 
@@ -3167,6 +3177,7 @@ class OverlayService : Service() {
         Log.i(TAG, "OverlayService onDestroy")
         OverlayState.onRelayout = null
         OverlayState.expanded = false
+        OverlayState.dragging = false
         detachOverlay()
         isRunning = false
         super.onDestroy()
@@ -3183,7 +3194,7 @@ class OverlayService : Service() {
             val ballSizePx = (56 * density).toInt()
             val startX = (24 * density).toInt()
             val startY = (120 * density).toInt()
-            val padPx = (8 * density).toInt()
+            padPx = (8 * density).toInt()
 
             OverlayState.init(
                 screenW = metrics.widthPixels,
@@ -3222,51 +3233,36 @@ class OverlayService : Service() {
                 )
             )
 
-            // ── 窗口始终全屏 ──────────────────────────────
-            val params = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.MATCH_PARENT,
-                WindowManager.LayoutParams.MATCH_PARENT,
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                        or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-                        or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-                        or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
-                PixelFormat.TRANSLUCENT
-            ).apply {
-                gravity = Gravity.TOP or Gravity.START
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    layoutInDisplayCutoutMode =
-                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-                }
-            }
-
-            windowManager.addView(container, params)
+            // ── ① 全屏渲染窗口 ─────────────────────────────
+            val rp = newOverlayParams(
+                width = WindowManager.LayoutParams.MATCH_PARENT,
+                height = WindowManager.LayoutParams.MATCH_PARENT,
+                flags = BASE_FLAGS or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            )
+            windowManager.addView(container, rp)
             rootView = container
+            rootParams = rp
 
-            // ── 动态触摸区域 ──────────────────────────────
-            @Suppress("DEPRECATION")
-            container.viewTreeObserver.addOnComputeInternalInsetsListener { info ->
-                if (OverlayState.expanded) {
-                    info.setTouchableInsets(
-                        ViewTreeObserver.InternalInsetsInfo.TOUCHABLE_INSETS_FRAME
-                    )
-                } else {
-                    info.setTouchableInsets(
-                        ViewTreeObserver.InternalInsetsInfo.TOUCHABLE_INSETS_REGION
-                    )
-                    info.touchableRegion.set(
-                        OverlayState.ballX - padPx,
-                        OverlayState.ballY - padPx,
-                        OverlayState.ballX + OverlayState.ballSize + padPx,
-                        OverlayState.ballY + OverlayState.ballSize + padPx
-                    )
-                }
+            // ── ② 触摸代理窗口（透明空 View） ───────────────
+            val proxy = View(this).apply {
+                isClickable = false
+                isFocusable = false
+                setOnTouchListener { v, e -> onTouchProxy(v, e) }
             }
+            val tp = newOverlayParams(
+                width = ballSizePx + padPx * 2,
+                height = ballSizePx + padPx * 2,
+                flags = BASE_FLAGS
+            )
+            windowManager.addView(proxy, tp)
+            touchView = proxy
+            touchParams = tp
 
-            // 状态变化时触发 insets 重算
-            OverlayState.onRelayout = { container.requestLayout() }
+            // 状态变化时重算两个窗口的 flags / 位置
+            OverlayState.onRelayout = { applyLayout() }
+            applyLayout()
 
-            Log.i(TAG, "悬浮窗已添加（全屏窗口 + 动态触摸区域）")
+            Log.i(TAG, "悬浮窗已添加（全屏渲染窗口 + 触摸代理窗口）")
             true
         } catch (t: Throwable) {
             Log.e(TAG, "添加悬浮窗失败", t)
@@ -3274,7 +3270,110 @@ class OverlayService : Service() {
         }
     }
 
+    private fun newOverlayParams(
+        width: Int,
+        height: Int,
+        flags: Int
+    ): WindowManager.LayoutParams =
+        WindowManager.LayoutParams(
+            width,
+            height,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            flags,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+        }
+
+    /**
+     * 依据 [OverlayState] 重算两个窗口的状态。
+     *
+     *  · 渲染窗口：菜单模式可触摸，球模式不可触摸（触摸全体穿透）。
+     *  · 代理窗口：球模式摆到球上并可触摸，菜单模式不可触摸。
+     */
+    private fun applyLayout() {
+        val rp = rootParams ?: return
+        val tp = touchParams ?: return
+        val expanded = OverlayState.expanded
+
+        val rootFlags =
+            if (expanded) BASE_FLAGS
+            else BASE_FLAGS or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+        if (rp.flags != rootFlags) {
+            rp.flags = rootFlags
+            rootView?.let { windowManager.updateViewLayout(it, rp) }
+        }
+
+        val touchFlags =
+            if (expanded) BASE_FLAGS or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            else BASE_FLAGS
+        tp.flags = touchFlags
+
+        if (!expanded && OverlayState.ballSize > 0) {
+            val left = (OverlayState.ballX - padPx).coerceAtLeast(0)
+            val top = (OverlayState.ballY - padPx).coerceAtLeast(0)
+            tp.x = left
+            tp.y = top
+            tp.width = (OverlayState.ballX + OverlayState.ballSize + padPx - left).coerceAtLeast(1)
+            tp.height = (OverlayState.ballY + OverlayState.ballSize + padPx - top).coerceAtLeast(1)
+        }
+        touchView?.let { windowManager.updateViewLayout(it, tp) }
+    }
+
+    /**
+     * 代理窗口的手势处理：在球上拖拽 → 移动球；轻点 → 展开菜单。
+     */
+    private fun onTouchProxy(v: View, e: MotionEvent): Boolean {
+        when (e.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                downRawX = e.rawX
+                downRawY = e.rawY
+                lastRawX = e.rawX
+                lastRawY = e.rawY
+                return true
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                val x = e.rawX
+                val y = e.rawY
+                if (!OverlayState.dragging) {
+                    if (abs(x - downRawX) + abs(y - downRawY) <= touchSlop) return true
+                    OverlayState.dragging = true
+                }
+                OverlayState.moveBallBy(x - lastRawX, y - lastRawY)
+                lastRawX = x
+                lastRawY = y
+                return true
+            }
+
+            MotionEvent.ACTION_UP -> {
+                if (!OverlayState.dragging) OverlayState.expanded = true
+                OverlayState.dragging = false
+                return true
+            }
+
+            MotionEvent.ACTION_CANCEL -> {
+                OverlayState.dragging = false
+                return true
+            }
+        }
+        return false
+    }
+
     private fun detachOverlay() {
+        touchView?.let {
+            try {
+                windowManager.removeViewImmediate(it)
+            } catch (t: Throwable) {
+                Log.w(TAG, "移除触摸代理窗口失败", t)
+            }
+            touchView = null
+            touchParams = null
+        }
         rootView?.let {
             try {
                 windowManager.removeViewImmediate(it)
@@ -3282,6 +3381,7 @@ class OverlayService : Service() {
                 Log.w(TAG, "移除悬浮窗失败", t)
             }
             rootView = null
+            rootParams = null
         }
     }
 
@@ -3362,17 +3462,20 @@ import androidx.compose.runtime.setValue
  *   悬浮窗全局状态
  * ════════════════════════════════════════════════════════════════
  *
- *   单窗口方案 —— 窗口尺寸随状态动态变化，从根本上避免
- *   「全屏窗口吃掉所有触摸」。
+ *   球的坐标一律是「屏幕绝对坐标」（px），渲染窗口始终全屏，
+ *   所以 UI 侧直接用 Modifier.offset 摆放即可，与窗口 x/y 无关。
  *
- *     ▸ 球模式（expanded = false）：窗口 = 球大小
- *         只拦截球区域的触摸，其余触摸直接穿透到下层 App。
+ *   触摸则由 OverlayService 的触摸代理窗口负责，它每次布局变化都会
+ *   通过 [onRelayout] 被通知：
  *
- *     ▸ 菜单模式（expanded = true）：窗口 = 全屏
- *         拦截所有触摸 —— 点击菜单外部关闭菜单，符合常规交互。
+ *     ▸ 球模式（expanded = false）：代理窗口 = 球 + padding
+ *         只有球区域可触摸，其余触摸直接穿透到下层 App。
  *
- *   注意：expanded 的 setter 会触发 onRelayout 回调，
- *   由 OverlayService 更新 WindowManager.LayoutParams。
+ *     ▸ 菜单模式（expanded = true）：全屏渲染窗口可触摸
+ *         拦截所有触摸 —— 点击菜单外部关闭菜单。
+ *
+ *   注意：[expanded] 与 [moveBallBy] 都会触发 [onRelayout]，
+ *   由 OverlayService 重算窗口 flags 与位置。
  */
 object OverlayState {
 
@@ -3386,6 +3489,9 @@ object OverlayState {
             _expanded.value = value
             onRelayout?.invoke()
         }
+
+    /** 球是否正在被拖拽（用来切换「奔跑」动画）。 */
+    var dragging: Boolean by mutableStateOf(false)
 
     private val _ballX: MutableState<Int> = mutableStateOf(0)
     private val _ballY: MutableState<Int> = mutableStateOf(0)
