@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">MyXPTemplate</string>
+    <string name="module_description">MyXPTemplate 悬浮菜单 · Xposed 模块</string>
+</resources>
